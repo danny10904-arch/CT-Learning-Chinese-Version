@@ -1,5 +1,123 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CT 解剖學習室｜真實三切面圖譜</title><meta name="description" content="繁體中文 CT 解剖圖譜：真實連續切片、三切面同步定位、逐層器官輪廓與中文標示。"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%230a1420'/%3E%3Ccircle cx='20' cy='20' r='13' fill='none' stroke='%235dd8ef' stroke-width='3'/%3E%3Cpath d='M20 9v22M9 20h22' stroke='%235dd8ef'/%3E%3C/svg%3E"><link rel="stylesheet" href="atlas.css"><script src="atlas.js" defer></script></head>
-<body><header><div class="brand"><span class="mark">⊕</span><div><h1>CT 解剖學習室</h1><p>真實連續切片 · 繁體中文圖譜</p></div></div><span class="badge">研究資料・非診斷用途</span></header><section class="intro"><h2>沿著切片，認識身體。</h2><p>拖動滑桿或在影像上滾動切片。點選影像，同步定位其他兩個切面；右側只列出目前切片中有標註的構造。</p></section><div id="status" role="status">正在載入真實 CT 與器官標註…</div>
-<fieldset id="controls" disabled><legend class="sr">影像控制</legend><div class="toolbar"><label>影像序列<select id="series"><option value="s0327">頸根部・胸腹骨盆（增強）</option><option value="s1456">頭部 CT</option><option value="s1438">膝關節 CT</option></select></label><label>灰階／器官彩色<select id="mode"><option value="color">彩色器官輪廓</option><option value="mono">黑白 CT</option></select></label><label>窗位／窗寬<select id="window"><option value="soft">軟組織窗</option><option value="lung">肺窗</option><option value="bone">骨窗</option><option value="brain">腦窗</option></select></label><label class="check"><input id="labels" type="checkbox" checked>中文標籤</label><button id="reset" type="button">重設定位</button></div><nav class="regions" aria-label="身體區域"><button data-region="head">頭部</button><button data-region="neck">頸根部</button><button data-region="chest">胸部</button><button data-region="abdomen">腹部</button><button data-region="pelvis">骨盆</button><button data-region="legs">下肢・膝部</button><button disabled title="尚無已驗證的足部影像與標註">足部・尚未收錄</button></nav></fieldset>
-<main><section class="workspace"><div class="viewers" id="viewers"></div><div class="readouts"><span id="position">—</span><span id="density">移動指標或點選影像查看構造</span><span id="windowText">窗位 40／窗寬 400 HU</span></div><p class="hint">手機：用滑桿換切片，點影像定位。電腦：滾輪、滑桿或方向鍵換切片。三視角使用同一組三維資料，非靜態圖片平移。</p><div class="notice"><strong>資料範圍與限制</strong><p id="coverage">正在確認影像範圍…</p><p>彩色輪廓代表資料集的逐像素分割；腦部圓點與引線代表精細解剖定位導引。兩者都不是器官原本的顏色，定位導引也不等同精確邊界。未標註不代表沒有構造；影像為教學效能而重新取樣，不供疾病診斷。</p><p>增強 CT 必須來自實際顯影掃描。本頁不以調亮圖片冒充顯影劑效果，也不提供沒有對應資料的顯影前後切換。</p></div></section><aside><div class="panel-heading"><span class="eyebrow">跟隨目前切片</span><h2 id="listTitle">水平切面可見構造</h2><p id="organCount">載入中</p></div><p class="sidehint">頭部依腦葉、腦溝、深部灰質、白質束、腦室、腦幹與小腦分類；其他區域依器官系統分類。點選名稱可跳至其中心位置。</p><div id="organs"></div><div id="selection" aria-live="polite">尚未選取構造</div></aside></main>
-<footer><details><summary>影像來源、授權與參考網站</summary><p>影像與器官標註：Wasserthal 等人，<a href="https://zenodo.org/records/22688904" target="_blank" rel="noopener">TotalSegmentator dataset v3</a>，病例 s0327、s1456、s1438，<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>。本網站修改：重新取樣、整併標註、繁體中文名稱及互動呈現。不是資料作者的官方產品或背書。</p><p>分區與名稱呈現參考：<a href="https://www.imaios.com/en/e-anatomy" target="_blank" rel="noopener">IMAIOS e-Anatomy</a>；中文名稱依其解剖結構概念轉為臺灣常用繁體用語。未複製其付費影像、標註資料或程式碼。本站不同區域使用不同病例，不把不同人的掃描拼成同一人。</p></details></footer></body></html>
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111d">
+  <title>CT 解剖學習室｜真實三切面圖譜</title>
+  <meta name="description" content="繁體中文 CT 解剖圖譜：真實連續切片、三切面同步定位、逐層器官輪廓與中文標示。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%2307111d'/%3E%3Ccircle cx='20' cy='20' r='13' fill='none' stroke='%235dd8ef' stroke-width='3'/%3E%3Cpath d='M20 9v22M9 20h22' stroke='%235dd8ef'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="atlas.css">
+  <script src="atlas.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="回到 CT 解剖學習室首頁">
+      <span class="mark" aria-hidden="true">⊕</span>
+      <span><strong>CT 解剖學習室</strong><small>真實連續切片・繁體中文圖譜</small></span>
+    </a>
+    <div class="header-meta">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span>研究資料・非診斷用途</span>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div>
+        <p class="eyebrow">三切面同步定位</p>
+        <h1 id="hero-title">把每一張切片，看懂成一個身體。</h1>
+        <p class="hero-copy">點選任一影像可同步定位三個切面；拖動滑桿、滾輪或方向鍵則可逐層探索。右側只保留目前切片真正可見的構造。</p>
+      </div>
+      <div class="hero-features" aria-label="系統特色">
+        <span>真實 CT</span><span>同步三視角</span><span>繁中標註</span>
+      </div>
+    </section>
+
+    <p id="status" class="status" role="status" aria-live="polite">正在載入真實 CT 與器官標註…</p>
+
+    <fieldset id="controls" class="controls" disabled>
+      <legend class="sr">影像控制</legend>
+      <div class="toolbar">
+        <label>影像序列
+          <select id="series">
+            <option value="s0327">頸根部・胸腹骨盆（增強）</option>
+            <option value="s1456">頭部 CT</option>
+            <option value="s1438">膝關節 CT</option>
+          </select>
+        </label>
+        <label>顯示方式
+          <select id="mode">
+            <option value="color">彩色器官輪廓</option>
+            <option value="mono">黑白 CT</option>
+          </select>
+        </label>
+        <label>窗位／窗寬
+          <select id="window">
+            <option value="soft">軟組織窗</option>
+            <option value="lung">肺窗</option>
+            <option value="bone">骨窗</option>
+            <option value="brain">腦窗</option>
+          </select>
+        </label>
+        <label class="check"><input id="labels" type="checkbox" checked>顯示中文標籤</label>
+        <div class="tool-actions">
+          <button id="cine" type="button" aria-pressed="false" title="自動逐層播放目前切面">▶ 自動捲動</button>
+          <button id="reset" type="button">重設定位</button>
+        </div>
+      </div>
+      <nav class="regions" aria-label="快速跳至身體區域">
+        <span class="region-label">快速定位</span>
+        <button data-region="head" type="button">頭部</button>
+        <button data-region="neck" type="button">頸根部</button>
+        <button data-region="chest" type="button">胸部</button>
+        <button data-region="abdomen" type="button">腹部</button>
+        <button data-region="pelvis" type="button">骨盆</button>
+        <button data-region="legs" type="button">下肢・膝部</button>
+        <button disabled title="尚無已驗證的足部影像與標註" type="button">足部・尚未收錄</button>
+      </nav>
+    </fieldset>
+
+    <section class="app-shell" aria-label="CT 圖譜工作區">
+      <section class="workspace" aria-label="三切面影像">
+        <div class="viewers" id="viewers"></div>
+        <div class="readouts" aria-live="polite">
+          <span id="position">—</span>
+          <span id="density">移動指標或點選影像查看構造</span>
+          <span id="windowText">窗位 40／窗寬 400 HU</span>
+        </div>
+        <div class="interaction-guide">
+          <span class="guide-icon" aria-hidden="true">↔</span>
+          <p><strong>操作提示</strong>：電腦使用滾輪或方向鍵切片；手機使用各視角下方滑桿。按「自動捲動」可快速建立連續切片的空間感。</p>
+        </div>
+        <div class="notice">
+          <strong>資料範圍與限制</strong>
+          <p id="coverage">正在確認影像範圍…</p>
+          <p>彩色輪廓為資料集的逐像素分割；腦部圓點與引線為精細解剖定位導引。兩者都不是器官原本的顏色，定位導引也不等同精確邊界。未標註不代表沒有構造；影像為教學效能而重新取樣，不供疾病診斷。</p>
+        </div>
+      </section>
+
+      <aside class="structure-panel" aria-label="目前切片的可見構造">
+        <div class="panel-heading">
+          <span class="eyebrow">跟隨目前切片</span>
+          <h2 id="listTitle">水平切面可見構造</h2>
+          <p id="organCount">載入中</p>
+        </div>
+        <label class="search-label" for="organSearch">搜尋目前構造</label>
+        <input id="organSearch" type="search" placeholder="例如：肝臟、骨骼、腦室" autocomplete="off">
+        <p class="sidehint">點選名稱即可跳至其中心位置。搜尋僅篩選目前切片中可見的標註。</p>
+        <div id="organs" aria-live="polite"></div>
+        <div id="selection" class="selection" aria-live="polite">尚未選取構造</div>
+      </aside>
+    </section>
+  </main>
+
+  <footer>
+    <details>
+      <summary>影像來源、授權與參考網站</summary>
+      <p>影像與器官標註：Wasserthal 等人，<a href="https://zenodo.org/records/22688904" target="_blank" rel="noopener">TotalSegmentator dataset v3</a>，病例 s0327、s1456、s1438，<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>。本網站修改：重新取樣、整併標註、繁體中文名稱及互動呈現。不是資料作者的官方產品或背書。</p>
+      <p>分區與名稱呈現參考 <a href="https://www.imaios.com/en/e-anatomy" target="_blank" rel="noopener">IMAIOS e-Anatomy</a>；中文名稱依其解剖結構概念轉為臺灣常用繁體用語。未複製其付費影像、標註資料或程式碼，且不同區域使用不同病例。</p>
+    </details>
+  </footer>
+</body>
+</html>
