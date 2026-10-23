@@ -25,7 +25,7 @@ def category(key):
  if key.startswith(('kidney_','adrenal_')) or key in {'urinary_bladder','prostate'}: return '泌尿生殖'
  return '內臟'
 catalog=[]
-for sid,title,spacing in [('s0327','頸根部・胸部・腹部・骨盆（增強）',3),('s1456','頭部 CT（主要構造）',1.5),('s1438','膝關節 CT（局部下肢）',1.5)]:
+for sid,title,spacing in [('s0327','頸根部・胸部・腹部・骨盆（增強）',3),('s1456','頭部 CT（主要構造）',1.5)]:
  folder=root/sid
  src=nib.load(str(folder/'ct.nii.gz'))
  ct=resample_to_output(src,voxel_sizes=(spacing,)*3,order=1,cval=-1024)
