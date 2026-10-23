@@ -4,12 +4,11 @@ const $ = id => document.getElementById(id);
 const planeNames = ['水平切面', '冠狀切面', '矢狀切面'];
 const axes = [2, 1, 0];
 const ends = [['頭側', '足側'], ['前方', '後方'], ['病人右側', '病人左側']];
-const windows = {soft:[40,400], lung:[-600,1500], bone:[500,2000], brain:[40,80], mr:[500,1000]};
+const windows = {soft:[40,400], lung:[-600,1500], bone:[500,2000], brain:[40,80]};
 const categoryOrder = ['腦葉','腦回','腦溝','深部灰質','白質束','腦室系統','邊緣系統','腦幹','小腦','腦池與中線','神經','呼吸','心血管','內臟','泌尿生殖','骨骼','肌肉','其他'];
 const targets = {
-  head:['brain'], neck:['vertebrae_C5','thyroid_gland'], chest:['heart','lung_upper_lobe_right'],
-  abdomen:['liver','pancreas'], pelvis:['urinary_bladder','hip_left'], legs:['femur_left','femur_right'],
-  feet:['tarsal','metatarsal','phalanges_feet']
+  head:['brain'],
+  pelvis:['urinary_bladder','hip_left']
 };
 
 let meta, ct, seg, pos = [0,0,0], active = 0, chosen = 0, chosenLandmark = '';
@@ -150,7 +149,7 @@ function showHover(p, event) {
   const landmark = nearestLandmark(p, event);
   const organ = organsById.get(seg[index(...xyz)]);
   const intensity = ct[index(...xyz)];
-  const measurement = meta.modality === 'MRI' ? `${intensity} 相對訊號值` : `${intensity} HU（重新取樣）`;
+  const measurement = `${intensity} HU（重新取樣）`;
   $('density').textContent = `${landmark ? landmark.name + '（精細定位導引）' : organ ? organ.name : '未標註區域'} · ${measurement}`;
 }
 
@@ -339,9 +338,7 @@ function render() {
   renderOrganList(visible);
   const [currentLevel, currentWidth] = windows[$('window').value];
   $('position').textContent = `目前：${planeNames[active]}`;
-  $('windowText').textContent = meta.modality === 'MRI'
-    ? `MRI 訊號中心 ${currentLevel}／範圍 ${currentWidth}`
-    : `窗位 ${currentLevel}／窗寬 ${currentWidth} HU`;
+  $('windowText').textContent = `窗位 ${currentLevel}／窗寬 ${currentWidth} HU`;
 }
 
 function renderOrganList(visible) {
@@ -431,7 +428,7 @@ async function load(id, region) {
   $('controls').disabled = true;
   for (const view of views) view.slider.disabled = true;
   $('status').className = 'status';
-  $('status').textContent = '正在下載真實 CT／MRI 與器官標註，首次載入請稍候…';
+  $('status').textContent = '正在下載真實 CT 與器官標註，首次載入請稍候…';
   try {
     let data = cache.get(id);
     if (!data) {
@@ -445,7 +442,7 @@ async function load(id, region) {
         })
         : [];
       const [volume, mask] = await Promise.all([
-        unpack(`data/${id}-${metadata.volumeFile || 'ct'}.gz`, Int16Array),
+        unpack(`data/${id}-ct.gz`, Int16Array),
         unpack(`data/${id}-seg.gz`, Uint8Array)
       ]);
       if (volume.length !== metadata.shape.reduce((total, n) => total * n, 1) || mask.length !== volume.length) throw Error('影像與標註尺寸不符');
@@ -464,15 +461,13 @@ async function load(id, region) {
     ready = true;
     $('controls').disabled = false;
     $('series').value = id;
-    $('window').value = meta.modality === 'MRI' ? 'mr' : id === 's1456' ? 'brain' : id === 's1438' ? 'bone' : 'soft';
+    $('window').value = id === 's1456' ? 'brain' : 'soft';
     $('status').textContent = id === 's1456'
       ? `已載入：${meta.title}｜${meta.shape[2]} 張主要切片｜${meta.organs.length} 個分割標註＋${brainLandmarks.length} 個腦部精細定位`
       : `已載入：${meta.title}｜${meta.shape[2]} 張主要切片｜${meta.organs.length} 個分割標註`;
-    $('coverage').textContent = meta.modality === 'MRI'
-      ? `病例 ${meta.sourceCase}：${meta.title}。${meta.sequence} 本頁僅呈現資料集提供的 ${meta.organs.length} 個逐像素分割；MRI 訊號強度不適用 HU。顯示資料已重新取樣為 ${meta.spacing.join(' × ')} 毫米；原始間距為 ${meta.sourceSpacing.map(value => value.toFixed(3)).join(' × ')} 毫米。來源授權 ${meta.license}，衍生資料僅限非商業使用。`
-      : id === 's1456'
+    $('coverage').textContent = id === 's1456'
       ? `病例 ${id}：${meta.title}。包含 ${meta.organs.length} 個資料集逐像素分割，以及 ${brainLandmarks.length} 個會隨三切面移動的腦部精細定位導引。精細定位依本病例影像與標準解剖位置建立，並非逐像素分割，不應用於診斷。教學顯示間距 ${meta.spacing.join(' × ')} 毫米。`
-      : `病例 ${id}：${meta.title}。顯影資訊：${meta.contrast}。教學顯示間距 ${meta.spacing.join(' × ')} 毫米；原始間距 ${meta.sourceSpacing.map(value => value.toFixed(2)).join(' × ')} 毫米。頭部、軀幹與膝部是不同病例；尚未收錄完整頸部、小腿與足部。`;
+      : `病例 ${id}：${meta.title}。顯影資訊：${meta.contrast}。教學顯示間距 ${meta.spacing.join(' × ')} 毫米；原始間距 ${meta.sourceSpacing.map(value => value.toFixed(2)).join(' × ')} 毫米。頭部與軀幹使用不同病例；尚未收錄完整頸部、小腿與足部。`;
     $('selection').textContent = '尚未選取構造';
     if (!region) document.querySelectorAll('[data-region]').forEach(button => button.classList.toggle('active', false));
     if (region) jump(region);
@@ -485,7 +480,7 @@ async function load(id, region) {
 }
 
 async function jump(region) {
-  const seriesId = region === 'head' ? 's1456' : region === 'legs' ? 's1438' : 's0327';
+  const seriesId = region === 'head' ? 's1456' : 's0327';
   if (!ready || meta.id !== seriesId) return load(seriesId, region);
   stopCine();
   const organ = targets[region].map(key => meta.organs.find(item => item.key === key)).find(Boolean);
@@ -493,10 +488,6 @@ async function jump(region) {
     pos = [...organ.center];
     chosen = organ.id;
     showSelected(chosen);
-  } else if (region === 'feet') {
-    pos = [Math.floor(meta.shape[0] / 2), Math.floor(meta.shape[1] / 2), Math.round(meta.shape[2] * .04)];
-    chosen = 0;
-    $('selection').textContent = '掃描下端定位；足部未有可用器官分割標註。';
   } else {
     $('selection').textContent = '此病例沒有此區域的定位標註。';
     render();
@@ -526,4 +517,4 @@ $('reset').onclick = () => {
 };
 document.querySelectorAll('[data-region]').forEach(button => button.onclick = () => jump(button.dataset.region));
 updateCineButton();
-load('s0327', 'abdomen');
+load('s0327', 'pelvis');
