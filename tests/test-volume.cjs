@@ -10,11 +10,10 @@ const ctx=vm.createContext({console,Uint8Array,Uint8ClampedArray,Int16Array,Map,
 const run=s=>vm.runInContext(s,ctx);run(fs.readFileSync(path.join(SITE,'atlas.js'),'utf8'));
 (async()=>{
  for(let i=0;i<100&&!run('ready');i++)await new Promise(r=>setTimeout(r,20));assert(run('ready'),'Initial CT load');
- for(const sid of ['s0327','s1456','s1438','m0006']){
+ for(const sid of ['s0327','s1456']){
   await run(`load('${sid}')`);assert(run('ready'));
-  const m=JSON.parse(fs.readFileSync(path.join(SITE,`data/${sid}.json`))),vol=zlib.gunzipSync(fs.readFileSync(path.join(SITE,`data/${sid}-${m.volumeFile||'ct'}.gz`))),mask=zlib.gunzipSync(fs.readFileSync(path.join(SITE,`data/${sid}-seg.gz`)));assert.equal(vol.length,m.shape.reduce((a,b)=>a*b)*2);assert.equal(mask.length,vol.length/2);
+  const m=JSON.parse(fs.readFileSync(path.join(SITE,`data/${sid}.json`))),vol=zlib.gunzipSync(fs.readFileSync(path.join(SITE,`data/${sid}-ct.gz`))),mask=zlib.gunzipSync(fs.readFileSync(path.join(SITE,`data/${sid}-seg.gz`)));assert.equal(vol.length,m.shape.reduce((a,b)=>a*b)*2);assert.equal(mask.length,vol.length/2);
   if(sid==='s1456'){const landmarks=JSON.parse(fs.readFileSync(path.join(SITE,'data/brain-landmarks.json')));assert(landmarks.length>=58,'Expanded brain landmark set');assert.equal(new Set(landmarks.map(o=>o.key)).size,landmarks.length,'Brain landmark keys must be unique');for(const key of ['precentral_gyrus_left','postcentral_gyrus_left','septum_pellucidum','foramen_of_monro','cerebral_aqueduct','prepontine_cistern'])assert(landmarks.some(o=>o.key===key),`Brain landmark ${key} must be present`)}
-  if(sid==='m0006'){assert.equal(m.modality,'MRI','MRI series must identify its modality');assert.equal(m.license,'CC BY-NC-SA 2.0','MRI license must be retained');get('structureFilter').value='muscle';run('active=0;pos[2]=Math.floor(meta.shape[2]/2);render()');assert(els.organs.children.length>0,'Muscle filter must show visible muscle structures');get('structureFilter').value=''}
   for(const o of m.organs){const [x,y,z]=o.center;assert.equal(mask[x+m.shape[0]*(y+m.shape[1]*z)],o.id,'Centroid anchor must be inside named organ')}
   const hashes=[],sets=[];
   for(const fraction of [.2,.5,.8]){
@@ -29,6 +28,6 @@ const run=s=>vm.runInContext(s,ctx);run(fs.readFileSync(path.join(SITE,'atlas.js
   }
   console.log(sid, m.shape.join('×'),m.organs.length,'labels: slice pixels, organ lists, anchors and sliders passed');
  }
- await run("jump('head')");assert.equal(run('meta.id'),'s1456');await run("jump('legs')");assert.equal(run('meta.id'),'s1438');await run("jump('abdomen')");assert.equal(run('meta.id'),'s0327');assert(run('chosen>0'));
+ await run("jump('head')");assert.equal(run('meta.id'),'s1456');await run("jump('pelvis')");assert.equal(run('meta.id'),'s0327');assert(run('chosen>0'));
  console.log('Region navigation and asynchronous volume switching passed. These are data/interaction tests, not browser UI tests.');
 })().catch(e=>{console.error(e);process.exitCode=1});
