@@ -10,10 +10,11 @@ const ctx=vm.createContext({console,Uint8Array,Uint8ClampedArray,Int16Array,Map,
 const run=s=>vm.runInContext(s,ctx);run(fs.readFileSync(path.join(SITE,'atlas.js'),'utf8'));
 (async()=>{
  for(let i=0;i<100&&!run('ready');i++)await new Promise(r=>setTimeout(r,20));assert(run('ready'),'Initial CT load');
- for(const sid of ['s0327','s1456','s1438']){
+ for(const sid of ['s0327','s1456','s1438','m0006']){
   await run(`load('${sid}')`);assert(run('ready'));
-  const m=JSON.parse(fs.readFileSync(path.join(SITE,`data/${sid}.json`))),vol=zlib.gunzipSync(fs.readFileSync(path.join(SITE,`data/${sid}-ct.gz`))),mask=zlib.gunzipSync(fs.readFileSync(path.join(SITE,`data/${sid}-seg.gz`)));assert.equal(vol.length,m.shape.reduce((a,b)=>a*b)*2);assert.equal(mask.length,vol.length/2);
-  if(sid==='s1456'){const landmarks=JSON.parse(fs.readFileSync(path.join(SITE,'data/brain-landmarks.json')));assert(landmarks.length>=40,'Detailed brain landmark set');assert.equal(new Set(landmarks.map(o=>o.key)).size,landmarks.length,'Brain landmark keys must be unique')}
+  const m=JSON.parse(fs.readFileSync(path.join(SITE,`data/${sid}.json`))),vol=zlib.gunzipSync(fs.readFileSync(path.join(SITE,`data/${sid}-${m.volumeFile||'ct'}.gz`))),mask=zlib.gunzipSync(fs.readFileSync(path.join(SITE,`data/${sid}-seg.gz`)));assert.equal(vol.length,m.shape.reduce((a,b)=>a*b)*2);assert.equal(mask.length,vol.length/2);
+  if(sid==='s1456'){const landmarks=JSON.parse(fs.readFileSync(path.join(SITE,'data/brain-landmarks.json')));assert(landmarks.length>=58,'Expanded brain landmark set');assert.equal(new Set(landmarks.map(o=>o.key)).size,landmarks.length,'Brain landmark keys must be unique');for(const key of ['precentral_gyrus_left','postcentral_gyrus_left','septum_pellucidum','foramen_of_monro','cerebral_aqueduct','prepontine_cistern'])assert(landmarks.some(o=>o.key===key),`Brain landmark ${key} must be present`)}
+  if(sid==='m0006'){assert.equal(m.modality,'MRI','MRI series must identify its modality');assert.equal(m.license,'CC BY-NC-SA 2.0','MRI license must be retained');get('structureFilter').value='muscle';run('active=0;pos[2]=Math.floor(meta.shape[2]/2);render()');assert(els.organs.children.length>0,'Muscle filter must show visible muscle structures');get('structureFilter').value=''}
   for(const o of m.organs){const [x,y,z]=o.center;assert.equal(mask[x+m.shape[0]*(y+m.shape[1]*z)],o.id,'Centroid anchor must be inside named organ')}
   const hashes=[],sets=[];
   for(const fraction of [.2,.5,.8]){
