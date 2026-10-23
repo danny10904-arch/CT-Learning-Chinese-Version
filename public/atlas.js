@@ -4,8 +4,8 @@ const $ = id => document.getElementById(id);
 const planeNames = ['水平切面', '冠狀切面', '矢狀切面'];
 const axes = [2, 1, 0];
 const ends = [['頭側', '足側'], ['前方', '後方'], ['病人右側', '病人左側']];
-const windows = {soft:[40,400], lung:[-600,1500], bone:[500,2000], brain:[40,80]};
-const categoryOrder = ['腦葉','腦溝','深部灰質','白質束','腦室系統','邊緣系統','腦幹','小腦','腦池與中線','神經','呼吸','心血管','內臟','泌尿生殖','骨骼','肌肉','其他'];
+const windows = {soft:[40,400], lung:[-600,1500], bone:[500,2000], brain:[40,80], mr:[500,1000]};
+const categoryOrder = ['腦葉','腦回','腦溝','深部灰質','白質束','腦室系統','邊緣系統','腦幹','小腦','腦池與中線','神經','呼吸','心血管','內臟','泌尿生殖','骨骼','肌肉','其他'];
 const targets = {
   head:['brain'], neck:['vertebrae_C5','thyroid_gland'], chest:['heart','lung_upper_lobe_right'],
   abdomen:['liver','pancreas'], pelvis:['urinary_bladder','hip_left'], legs:['femur_left','femur_right'],
@@ -113,6 +113,17 @@ function landmarksOn(p) {
   return brainLandmarks.filter(item => Math.abs(pos[axis] - item.center[axis]) <= item.range[axis]);
 }
 
+function structureFilter() {
+  return $('structureFilter').value || 'all';
+}
+
+function matchesStructure(item) {
+  const filter = structureFilter();
+  if (filter === 'all') return true;
+  if (filter === 'muscle') return item.category === '肌肉';
+  return meta.id === 's1456' && (item.kind === 'landmark' || item.key === 'brain');
+}
+
 function nearestLandmark(p, event) {
   const geometry = views[p].geometry;
   if (!geometry || meta.id !== 's1456') return null;
@@ -138,7 +149,9 @@ function showHover(p, event) {
   if (!xyz) return;
   const landmark = nearestLandmark(p, event);
   const organ = organsById.get(seg[index(...xyz)]);
-  $('density').textContent = `${landmark ? landmark.name + '（精細定位導引）' : organ ? organ.name : '未標註區域'} · ${ct[index(...xyz)]} HU（重新取樣）`;
+  const intensity = ct[index(...xyz)];
+  const measurement = meta.modality === 'MRI' ? `${intensity} 相對訊號值` : `${intensity} HU（重新取樣）`;
+  $('density').textContent = `${landmark ? landmark.name + '（精細定位導引）' : organ ? organ.name : '未標註區域'} · ${measurement}`;
 }
 
 function showSelected(id) {
@@ -191,6 +204,7 @@ function render() {
   const [windowLevel, windowWidth] = windows[$('window').value];
   const colorMode = $('mode').value === 'color';
   const showLabels = $('labels').checked;
+  const forceMuscleColor = structureFilter() === 'muscle';
 
   for (let p = 0; p < 3; p++) {
     const view = views[p];
@@ -218,7 +232,7 @@ function render() {
         statistic.n++;
         statistic.x += x;
         statistic.y += y;
-        if (colorMode) {
+        if ((colorMode || forceMuscleColor) && matchesStructure(organ)) {
           const alpha = chosen === segmentId ? .68 : .30;
           red = gray * (1 - alpha) + organ.color[0] * alpha;
           green = gray * (1 - alpha) + organ.color[1] * alpha;
@@ -243,11 +257,12 @@ function render() {
     context.imageSmoothingEnabled = true;
     context.drawImage(view.buffer, offsetX, offsetY, width * scale, height * scale);
 
-    if (colorMode || chosen) {
+    if (colorMode || forceMuscleColor || chosen) {
       for (let y = 1; y < height - 1; y++) for (let x = 1; x < width - 1; x++) {
         const segmentId = slice[x + y * width];
         const organ = organsById.get(segmentId);
-        if (!organ || (!colorMode && segmentId !== chosen)) continue;
+        const filtered = matchesStructure(organ || {});
+        if (!organ || ((!colorMode && !forceMuscleColor) && segmentId !== chosen) || ((colorMode || forceMuscleColor) && !filtered && segmentId !== chosen)) continue;
         if (slice[x + 1 + y * width] !== segmentId || slice[x + (y + 1) * width] !== segmentId) {
           context.fillStyle = segmentId === chosen ? '#fff' : `rgb(${organ.color})`;
           context.fillRect(offsetX + x * scale, offsetY + y * scale, Math.max(1, scale), Math.max(1, scale));
@@ -273,7 +288,7 @@ function render() {
       const occupied = [];
       context.font = '18px system-ui';
       const markers = [...counts]
-        .filter(([, statistic]) => statistic.n >= 5)
+        .filter(([segmentId, statistic]) => statistic.n >= 5 && matchesStructure(organsById.get(segmentId)))
         .sort((a,b) => (b[0] === chosen) - (a[0] === chosen) || b[1].n - a[1].n)
         .slice(0, 12);
       for (const [segmentId, statistic] of markers) {
@@ -285,7 +300,7 @@ function render() {
         context.fillStyle = `rgb(${organ.color})`;
         context.fillRect(x - 2, y - 2, 4, 4);
       }
-      const detailed = planeLandmarks
+      const detailed = planeLandmarks.filter(matchesStructure)
         .sort((a,b) => (b.key === chosenLandmark) - (a.key === chosenLandmark) || Math.abs(pos[axes[p]] - a.center[axes[p]]) - Math.abs(pos[axes[p]] - b.center[axes[p]]))
         .slice(0, 14);
       for (const item of detailed) {
@@ -317,14 +332,16 @@ function render() {
     view.slider.value = p === 2 ? pos[axes[p]] : meta.shape[axes[p]] - 1 - pos[axes[p]];
     view.slider.disabled = false;
     if (p === active) {
-      visible = [...counts.keys()].map(id => ({...organsById.get(id), kind:'segment'}));
-      visible.push(...planeLandmarks.map(item => ({...item, kind:'landmark'})));
+      visible = [...counts.keys()].map(id => ({...organsById.get(id), kind:'segment'})).filter(matchesStructure);
+      visible.push(...planeLandmarks.map(item => ({...item, kind:'landmark'})).filter(matchesStructure));
     }
   }
   renderOrganList(visible);
   const [currentLevel, currentWidth] = windows[$('window').value];
   $('position').textContent = `目前：${planeNames[active]}`;
-  $('windowText').textContent = `窗位 ${currentLevel}／窗寬 ${currentWidth} HU`;
+  $('windowText').textContent = meta.modality === 'MRI'
+    ? `MRI 訊號中心 ${currentLevel}／範圍 ${currentWidth}`
+    : `窗位 ${currentLevel}／窗寬 ${currentWidth} HU`;
 }
 
 function renderOrganList(visible) {
@@ -366,7 +383,9 @@ function renderOrganList(visible) {
     };
     list.append(button);
   }
-  if (!visible.length) list.textContent = '此層沒有已標註構造。可繼續移動切片。';
+  if (!visible.length) list.textContent = structureFilter() === 'all'
+    ? '此層沒有已標註構造。可繼續移動切片。'
+    : '此層沒有符合目前解剖篩選的構造。可移動切片或切換篩選。';
   else if (!filtered.length) list.textContent = '目前切片沒有符合搜尋內容的構造。';
 }
 
@@ -412,7 +431,7 @@ async function load(id, region) {
   $('controls').disabled = true;
   for (const view of views) view.slider.disabled = true;
   $('status').className = 'status';
-  $('status').textContent = '正在下載真實 CT 與器官標註，首次載入請稍候…';
+  $('status').textContent = '正在下載真實 CT／MRI 與器官標註，首次載入請稍候…';
   try {
     let data = cache.get(id);
     if (!data) {
@@ -426,7 +445,7 @@ async function load(id, region) {
         })
         : [];
       const [volume, mask] = await Promise.all([
-        unpack(`data/${id}-ct.gz`, Int16Array),
+        unpack(`data/${id}-${metadata.volumeFile || 'ct'}.gz`, Int16Array),
         unpack(`data/${id}-seg.gz`, Uint8Array)
       ]);
       if (volume.length !== metadata.shape.reduce((total, n) => total * n, 1) || mask.length !== volume.length) throw Error('影像與標註尺寸不符');
@@ -445,11 +464,13 @@ async function load(id, region) {
     ready = true;
     $('controls').disabled = false;
     $('series').value = id;
-    $('window').value = id === 's1456' ? 'brain' : id === 's1438' ? 'bone' : 'soft';
+    $('window').value = meta.modality === 'MRI' ? 'mr' : id === 's1456' ? 'brain' : id === 's1438' ? 'bone' : 'soft';
     $('status').textContent = id === 's1456'
-      ? `已載入：${meta.title}｜${meta.shape[2]} 層水平切片｜${meta.organs.length} 個分割標註＋${brainLandmarks.length} 個腦部精細定位`
-      : `已載入：${meta.title}｜${meta.shape[2]} 層水平切片｜${meta.organs.length} 個分割標註`;
-    $('coverage').textContent = id === 's1456'
+      ? `已載入：${meta.title}｜${meta.shape[2]} 張主要切片｜${meta.organs.length} 個分割標註＋${brainLandmarks.length} 個腦部精細定位`
+      : `已載入：${meta.title}｜${meta.shape[2]} 張主要切片｜${meta.organs.length} 個分割標註`;
+    $('coverage').textContent = meta.modality === 'MRI'
+      ? `病例 ${meta.sourceCase}：${meta.title}。${meta.sequence} 本頁僅呈現資料集提供的 ${meta.organs.length} 個逐像素分割；MRI 訊號強度不適用 HU。顯示資料已重新取樣為 ${meta.spacing.join(' × ')} 毫米；原始間距為 ${meta.sourceSpacing.map(value => value.toFixed(3)).join(' × ')} 毫米。來源授權 ${meta.license}，衍生資料僅限非商業使用。`
+      : id === 's1456'
       ? `病例 ${id}：${meta.title}。包含 ${meta.organs.length} 個資料集逐像素分割，以及 ${brainLandmarks.length} 個會隨三切面移動的腦部精細定位導引。精細定位依本病例影像與標準解剖位置建立，並非逐像素分割，不應用於診斷。教學顯示間距 ${meta.spacing.join(' × ')} 毫米。`
       : `病例 ${id}：${meta.title}。顯影資訊：${meta.contrast}。教學顯示間距 ${meta.spacing.join(' × ')} 毫米；原始間距 ${meta.sourceSpacing.map(value => value.toFixed(2)).join(' × ')} 毫米。頭部、軀幹與膝部是不同病例；尚未收錄完整頸部、小腿與足部。`;
     $('selection').textContent = '尚未選取構造';
@@ -489,6 +510,7 @@ async function jump(region) {
 $('series').onchange = event => load(event.target.value);
 $('mode').onchange = render;
 $('window').onchange = render;
+$('structureFilter').onchange = render;
 $('labels').onchange = render;
 $('organSearch').oninput = () => ready && render();
 $('cine').onclick = toggleCine;

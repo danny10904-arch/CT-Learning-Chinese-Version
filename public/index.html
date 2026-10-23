@@ -4,17 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111d">
-  <title>CT 解剖學習室｜真實三切面圖譜</title>
-  <meta name="description" content="繁體中文 CT 解剖圖譜：真實連續切片、三切面同步定位、逐層器官輪廓與中文標示。">
+  <title>醫學影像解剖學習室｜CT 與 MRI 三切面圖譜</title>
+  <meta name="description" content="繁體中文 CT 與 MRI 解剖圖譜：真實連續切片、三切面同步定位、逐層器官輪廓與中文標示。">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%2307111d'/%3E%3Ccircle cx='20' cy='20' r='13' fill='none' stroke='%235dd8ef' stroke-width='3'/%3E%3Cpath d='M20 9v22M9 20h22' stroke='%235dd8ef'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="atlas.css">
   <script src="atlas.js" defer></script>
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="#top" aria-label="回到 CT 解剖學習室首頁">
+    <a class="brand" href="#top" aria-label="回到醫學影像解剖學習室首頁">
       <span class="mark" aria-hidden="true">⊕</span>
-      <span><strong>CT 解剖學習室</strong><small>真實連續切片・繁體中文圖譜</small></span>
+      <span><strong>醫學影像解剖學習室</strong><small>真實 CT／MRI・繁體中文圖譜</small></span>
     </a>
     <div class="header-meta">
       <span class="live-dot" aria-hidden="true"></span>
@@ -25,16 +25,16 @@
   <main id="top">
     <section class="hero" aria-labelledby="hero-title">
       <div>
-        <p class="eyebrow">三切面同步定位</p>
+        <p class="eyebrow">CT／MRI 三切面同步定位</p>
         <h1 id="hero-title">把每一張切片，看懂成一個身體。</h1>
         <p class="hero-copy">點選任一影像可同步定位三個切面；拖動滑桿、滾輪或方向鍵則可逐層探索。右側只保留目前切片真正可見的構造。</p>
       </div>
       <div class="hero-features" aria-label="系統特色">
-        <span>真實 CT</span><span>同步三視角</span><span>繁中標註</span>
+        <span>真實 CT／MRI</span><span>同步三視角</span><span>繁中標註</span>
       </div>
     </section>
 
-    <p id="status" class="status" role="status" aria-live="polite">正在載入真實 CT 與器官標註…</p>
+    <p id="status" class="status" role="status" aria-live="polite">正在載入真實醫學影像與器官標註…</p>
 
     <fieldset id="controls" class="controls" disabled>
       <legend class="sr">影像控制</legend>
@@ -44,6 +44,7 @@
             <option value="s0327">頸根部・胸腹骨盆（增強）</option>
             <option value="s1456">頭部 CT</option>
             <option value="s1438">膝關節 CT</option>
+            <option value="m0006">MRI・胸腹部（實際 MRI，序列未明）</option>
           </select>
         </label>
         <label>顯示方式
@@ -58,6 +59,14 @@
             <option value="lung">肺窗</option>
             <option value="bone">骨窗</option>
             <option value="brain">腦窗</option>
+            <option value="mr">MRI 訊號窗</option>
+          </select>
+        </label>
+        <label>解剖篩選
+          <select id="structureFilter">
+            <option value="all">所有可用構造</option>
+            <option value="muscle">彩色肌肉解剖</option>
+            <option value="brain">腦部精細解剖</option>
           </select>
         </label>
         <label class="check"><input id="labels" type="checkbox" checked>顯示中文標籤</label>
@@ -78,7 +87,7 @@
       </nav>
     </fieldset>
 
-    <section class="app-shell" aria-label="CT 圖譜工作區">
+    <section class="app-shell" aria-label="醫學影像圖譜工作區">
       <section class="workspace" aria-label="三切面影像">
         <div class="viewers" id="viewers"></div>
         <div class="readouts" aria-live="polite">
@@ -93,7 +102,7 @@
         <div class="notice">
           <strong>資料範圍與限制</strong>
           <p id="coverage">正在確認影像範圍…</p>
-          <p>彩色輪廓為資料集的逐像素分割；腦部圓點與引線為精細解剖定位導引。兩者都不是器官原本的顏色，定位導引也不等同精確邊界。未標註不代表沒有構造；影像為教學效能而重新取樣，不供疾病診斷。</p>
+          <p>彩色輪廓為資料集的逐像素分割；腦部圓點與引線為精細解剖定位導引。兩者都不是器官原本的顏色，定位導引也不等同精確邊界。MRI 的訊號強度不等同 CT 的 HU。未標註不代表沒有構造；影像為教學效能而重新取樣，不供疾病診斷。</p>
         </div>
       </section>
 
@@ -115,8 +124,8 @@
   <footer>
     <details>
       <summary>影像來源、授權與參考網站</summary>
-      <p>影像與器官標註：Wasserthal 等人，<a href="https://zenodo.org/records/22688904" target="_blank" rel="noopener">TotalSegmentator dataset v3</a>，病例 s0327、s1456、s1438，<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>。本網站修改：重新取樣、整併標註、繁體中文名稱及互動呈現。不是資料作者的官方產品或背書。</p>
-      <p>分區與名稱呈現參考 <a href="https://www.imaios.com/en/e-anatomy" target="_blank" rel="noopener">IMAIOS e-Anatomy</a>；中文名稱依其解剖結構概念轉為臺灣常用繁體用語。未複製其付費影像、標註資料或程式碼，且不同區域使用不同病例。</p>
+      <p>CT 影像與器官標註：Wasserthal 等人，<a href="https://zenodo.org/records/22688904" target="_blank" rel="noopener">TotalSegmentator dataset v3</a>，病例 s0327、s1456、s1438，<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>。MRI 影像與標註：<a href="https://zenodo.org/records/14710732" target="_blank" rel="noopener">TotalSegmentator MRI dataset v2.0.0</a>，病例 s0006，<a href="https://creativecommons.org/licenses/by-nc-sa/2.0/" target="_blank" rel="noopener">CC BY‑NC‑SA 2.0</a>，僅限非商業使用。本網站修改：重新取樣、整併標註、繁體中文名稱及互動呈現；不是資料作者的官方產品或背書。</p>
+      <p>分區、標註篩選與術語層級參考 <a href="https://www.imaios.com/en/e-anatomy" target="_blank" rel="noopener">IMAIOS e‑Anatomy</a> 的公開產品導覽；中文名稱轉為臺灣常用繁體用語。未複製其付費影像、標註資料、文字內容或程式碼，且不同區域使用不同病例。</p>
     </details>
   </footer>
 </body>
